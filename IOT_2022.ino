@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <PubSubClient.h>
-
+#include "ESP32_MailClient.h"
 
 //**************************************
 //*********** MQTT CONFIG **************
@@ -16,8 +16,8 @@ const char *root_topic_publish = "Temperatura/public_esp32";
 //**************************************
 //*********** WIFICONFIG ***************
 //**************************************
-const char* ssid = "UNISANGIL YOPAL";
-const char* password =  "";
+const char* ssid = "FLOWERALARCON";
+const char* password =  "1118573653";
 
 //**************************************
 //*********** GLOBALES   ***************
@@ -26,7 +26,7 @@ WiFiClient espClient;
 PubSubClient client(espClient);
 char msg[25];
 long count=0;
-
+SMTPData datosSMTP;
 //************************
 //** F U N C I O N E S ***
 //************************
@@ -39,6 +39,7 @@ void setup() {
   setup_wifi();
   client.setServer(mqtt_server, mqtt_port);
   client.setCallback(callback);
+  correo();
 }
 
 
@@ -130,4 +131,27 @@ void callback(char* topic, byte* payload, unsigned int length){
   incoming.trim();
   Serial.println("Mensaje -> " + incoming);
 
+}
+ 
+void correo(){
+digitalWrite(23, HIGH);
+//Configuración del servidor de correo electrónico SMTP, host, puerto, cuenta y contraseña
+datosSMTP.setLogin("smtp.gmail.com", 465, "jltinjaca@gmail.com", "pjqralrzzjxtkdcw");
+// Establecer el nombre del remitente y el correo electrónico
+datosSMTP.setSender("ESP32S", "jltinjaca@gmail.com");
+// Establezca la prioridad o importancia del correo electrónico High, Normal, Low o 1 a 5 (1 es el más alto)
+datosSMTP.setPriority("High");
+// Establecer el asunto
+datosSMTP.setSubject("Probando envio de correo con ESP32");
+// Establece el mensaje de correo electrónico en formato de texto (sin formato)
+datosSMTP.setMessage("Hola soy el esp32s! y me estoy comunicando contigo", false);
+// Agregar destinatarios, se puede agregar más de un destinatario
+datosSMTP.addRecipient("jltinjaca@gmail.com");
+ //Comience a enviar correo electrónico.
+if (!MailClient.sendMail(datosSMTP))
+Serial.println("Error enviando el correo, " + MailClient.smtpErrorReason());
+//Borrar todos los datos del objeto datosSMTP para liberar memoria
+datosSMTP.empty();
+delay(10000);
+digitalWrite(23, LOW);
 }
