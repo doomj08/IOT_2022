@@ -1,6 +1,8 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <PubSubClient.h>
+#include <ESP32Ping.h>
+#include "DHT.h"
 
 
 //**************************************
