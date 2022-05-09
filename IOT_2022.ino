@@ -3,8 +3,16 @@
 #include <PubSubClient.h>
 #include "ESP32_MailClient.h"
 #include <ESP32Ping.h>
-#include "DHTesp.h" // Click here to get the library: http://librarymanager/All#DHTesp
-//#include "DHT.h"
+// Incluimos librería
+#include <DHT.h>
+ 
+// Definimos el pin digital donde se conecta el sensor
+#define DHTPIN 2
+// Dependiendo del tipo de sensor
+#define DHTTYPE DHT11
+ 
+// Inicializamos el sensor DHT11
+DHT dht(DHTPIN, DHTTYPE);
 
 //**************************************
 //*********** MQTT CONFIG **************
@@ -32,10 +40,8 @@ const char* password =  "swordfish";
 WiFiClient espClient;
 PubSubClient client(espClient);
 SMTPData datosSMTP; //Datos correo electrónico
-DHTesp dht;
 char msg[25];
-long count=0;
-int dhtPin = 4;
+long contador=0;
 
 //************************
 //** F U N C I O N E S ***
@@ -43,21 +49,16 @@ int dhtPin = 4;
 void callback(char* topic, byte* payload, unsigned int length);
 void reconnect();
 void setup_wifi();
-bool getTemperature();
+//int count=0;
 
-bool initTemp() {
-  //byte resultValue = 0;
-  // Initialize temperature sensor
-  //dht.setup(dhtPin, DHTesp::DHT11);
-  dht.setup(dhtPin, DHTesp::DHT11);
-  Serial.println("DHT iniciado");
-}
 void setup() {
   Serial.begin(115200);
   setup_wifi();
   client.setServer(mqtt_server, mqtt_port);
   client.setCallback(callback);
   //correo();
+  // Comenzamos el sensor DHT
+  dht.begin();
 }
 
 
@@ -67,15 +68,16 @@ void loop() {
   }
 
   if (client.connected()){
-//    String str = "La cuenta es -> " + String(count);
-    //str.toCharArray(msg,25);
-    //client.publish(root_topic_publish,msg);
-    //count++;
-    //Serial.println(msg);
-    getTemperature();
-    Serial.println(___---___);
+    String str = "La cuenta es -> " + String(contador);
+    str.toCharArray(msg,25);
+    client.publish(root_topic_publish_temperatura,msg);
+    contador++;
+    temperatura();
+    Serial.println(msg);
     delay(3000);
   }
+  temperatura();
+  delay(3000);
   client.loop();
 }
 
@@ -153,76 +155,62 @@ void callback(char* topic, byte* payload, unsigned int length){
 }
  
 void correo(){
-  digitalWrite(23, HIGH);
-  //Configuración del servidor de correo electrónico SMTP, host, puerto, cuenta y contraseña
-  datosSMTP.setLogin("smtp.gmail.com", 465, "jltinjaca@gmail.com", "pjqralrzzjxtkdcw");
-  // Establecer el nombre del remitente y el correo electrónico
-  datosSMTP.setSender("ESP32S", "jltinjaca@gmail.com");
-  // Establezca la prioridad o importancia del correo electrónico High, Normal, Low o 1 a 5 (1 es el más alto)
-  datosSMTP.setPriority("High");
-  // Establecer el asunto
-  datosSMTP.setSubject("Probando envio de correo con ESP32");
-  // Establece el mensaje de correo electrónico en formato de texto (sin formato)
-  datosSMTP.setMessage("Hola soy el esp32s! y me estoy comunicando contigo", false);
-  // Agregar destinatarios, se puede agregar más de un destinatario
-  datosSMTP.addRecipient("jltinjaca@gmail.com");
-   //Comience a enviar correo electrónico.
-  if (!MailClient.sendMail(datosSMTP))
-  Serial.println("Error enviando el correo, " + MailClient.smtpErrorReason());
-  //Borrar todos los datos del objeto datosSMTP para liberar memoria
-  datosSMTP.empty();
-  delay(10000);
-  digitalWrite(23, LOW);
+digitalWrite(23, HIGH);
+//Configuración del servidor de correo electrónico SMTP, host, puerto, cuenta y contraseña
+datosSMTP.setLogin("smtp.gmail.com", 465, "jltinjaca@gmail.com", "pjqralrzzjxtkdcw");
+// Establecer el nombre del remitente y el correo electrónico
+datosSMTP.setSender("ESP32S", "jltinjaca@gmail.com");
+// Establezca la prioridad o importancia del correo electrónico High, Normal, Low o 1 a 5 (1 es el más alto)
+datosSMTP.setPriority("High");
+// Establecer el asunto
+datosSMTP.setSubject("Probando envio de correo con ESP32");
+// Establece el mensaje de correo electrónico en formato de texto (sin formato)
+datosSMTP.setMessage("Hola soy el esp32s! y me estoy comunicando contigo", false);
+// Agregar destinatarios, se puede agregar más de un destinatario
+datosSMTP.addRecipient("jltinjaca@gmail.com");
+ //Comience a enviar correo electrónico.
+if (!MailClient.sendMail(datosSMTP))
+Serial.println("Error enviando el correo, " + MailClient.smtpErrorReason());
+//Borrar todos los datos del objeto datosSMTP para liberar memoria
+datosSMTP.empty();
+delay(10000);
+digitalWrite(23, LOW);
 }
 
-bool getTemperature() {
-  // Reading temperature for humidity takes about 250 milliseconds!
-  // Sensor readings may also be up to 2 seconds 'old' (it's a very slow sensor)
-  TempAndHumidity newValues = dht.getTempAndHumidity();
-  // Check if any reads failed and exit early (to try again).
-  if (dht.getStatus() != 0) {
-    Serial.println("DHT11 error status: " + String(dht.getStatusString()));
-    return false;
+void temperatura() {
+    // Esperamos 5 segundos entre medidas
+  delay(5000);
+ 
+  // Leemos la humedad relativa
+  float h = dht.readHumidity();
+  // Leemos la temperatura en grados centígrados (por defecto)
+  float t = dht.readTemperature();
+  // Leemos la temperatura en grados Fahrenheit
+  float f = dht.readTemperature(true);
+ 
+  // Comprobamos si ha habido algún error en la lectura
+  if (isnan(h) || isnan(t) || isnan(f)) {
+    Serial.println("Error obteniendo los datos del sensor DHT11");
+    return;
   }
-
-  //float heatIndex = dht.computeHeatIndex(newValues.temperature, newValues.humidity);
-  //float dewPoint = dht.computeDewPoint(newValues.temperature, newValues.humidity);
-//  float cr = dht.getComfortRatio(cf, newValues.temperature, newValues.humidity);
-
-  String comfortStatus;
-/*  switch(cf) {
-    case Comfort_OK:
-      comfortStatus = "Comfort_OK";
-      break;
-    case Comfort_TooHot:
-      comfortStatus = "Comfort_TooHot";
-      break;
-    case Comfort_TooCold:
-      comfortStatus = "Comfort_TooCold";
-      break;
-    case Comfort_TooDry:
-      comfortStatus = "Comfort_TooDry";
-      break;
-    case Comfort_TooHumid:
-      comfortStatus = "Comfort_TooHumid";
-      break;
-    case Comfort_HotAndHumid:
-      comfortStatus = "Comfort_HotAndHumid";
-      break;
-    case Comfort_HotAndDry:
-      comfortStatus = "Comfort_HotAndDry";
-      break;
-    case Comfort_ColdAndHumid:
-      comfortStatus = "Comfort_ColdAndHumid";
-      break;
-    case Comfort_ColdAndDry:
-      comfortStatus = "Comfort_ColdAndDry";
-      break;
-    default:
-      comfortStatus = "Unknown:";
-      break;
-  };*/
-
-  Serial.println(" T:" + String(newValues.temperature) + " H:" + String(newValues.humidity));
-  return true;
+ 
+  // Calcular el índice de calor en Fahrenheit
+  float hif = dht.computeHeatIndex(f, h);
+  // Calcular el índice de calor en grados centígrados
+  float hic = dht.computeHeatIndex(t, h, false);
+ 
+  Serial.print("Humedad: ");
+  Serial.print(h);
+  Serial.print(" %\t");
+  Serial.print("Temperatura: ");
+  Serial.print(t);
+  Serial.print(" *C ");
+  Serial.print(f);
+  Serial.print(" *F\t");
+  Serial.print("Índice de calor: ");
+  Serial.print(hic);
+  Serial.print(" *C ");
+  Serial.print(hif);
+  Serial.println(" *F");
+ 
 }
