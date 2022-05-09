@@ -8,12 +8,14 @@
 //**************************************
 //*********** MQTT CONFIG **************
 //**************************************
-const char *mqtt_server = "node02.myqtthub.com";
+const char *mqtt_server = "broker.emqx.io";
 const int mqtt_port = 1883;
-const char *mqtt_user = "32";
-const char *mqtt_pass = "32";
-const char *root_topic_subscribe = "Temperatura/esp32";
-const char *root_topic_publish = "Temperatura/public_esp32";
+const char *mqtt_user = "sensor";
+const char *mqtt_pass = "swordfish";
+const char *root_topic_subscribe_temp = "Temperatura/esp32";
+const char *root_topic_subscribe_hum = "Humedad/esp32";
+const char *root_topic_publish_temp = "Temperatura/public_esp32";
+const char *root_topic_publish_hum = "Humedad/public_esp32";
 
 //**************************************
 //*********** WIFICONFIG ***************
